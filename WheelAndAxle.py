@@ -28,13 +28,13 @@ description = """"""
 
 parameters = [
 #   ["name", "units", default, [lower, upper], "type", "description"],
-    ['AxleRadius', '', 1.0, [0, inf], '', ''],
-    ['AxleLength', '', 1.0, [0, inf], '', ''],
+    ['AxleRadius', 'Angstrom', 1.0, [0, inf], '', ''],
+    ['AxleLength', 'Angstrom', 1.0, [0, inf], '', ''],
     ['AxleSld', '', 1.0, [-inf, inf], '', ''],
-    ['WheelRadius', '', 1.0, [0, inf], '', ''],
-    ['WheelLength', '', 1.0, [0, inf], '', ''],
+    ['WheelRadius', 'Angstrom', 1.0, [0, inf], '', ''],
+    ['WheelLength', 'Angstrom', 1.0, [0, inf], '', ''],
     ['WheelSld', '', 1.0, [-inf, inf], '', ''],
-    ['SolventSLD', '', 1.0, [-inf, inf], '', ''],
+    ['SolventSLD', '', 0.0, [-inf, inf], '', ''],
     ]
 
 
