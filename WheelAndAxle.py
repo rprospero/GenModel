@@ -19,8 +19,8 @@ Authorship and Verification
 
 from numpy import inf
 import numpy as np
-from scipy.special import jn
-from scipy.integrate import quad
+from scipy.special import spherical_jn
+from scipy.integrate import quad, dblquad
 
 name = "WheelAndAxle"
 title = "User model for WheelAndAxle"
@@ -28,7 +28,7 @@ description = """"""
 
 parameters = [
 #   ["name", "units", default, [lower, upper], "type", "description"],
-    ['AxleRadius', 'Angstrom', 1.0, [0, inf], '', ''],
+    ['AxleRadius', 'Angstrom', 80.0, [0, inf], '', ''],
     ['AxleLength', 'Angstrom', 1.0, [0, inf], '', ''],
     ['AxleSld', '', 1.0, [-inf, inf], '', ''],
     ['WheelRadius', 'Angstrom', 1.0, [0, inf], '', ''],
@@ -38,27 +38,54 @@ parameters = [
     ]
 
 
+class GenSurface(object):
+    def __init__(self, radius, diff):
+        self.R = radius
+        self.diff = diff
+
+    umin = 0
+    umax = np.pi
+    vmin = 0
+    vmax = 2 * np.pi
+
+    def surface(self, u, v):
+        """The default model is a sphere."""
+        x = self.R * np.sin(u) * np.cos(v)
+        y = self.R * np.sin(u) * np.sin(v)
+        z = self.R * np.cos(u)
+        return (x, y, z)
+
+    def norm(self, u, v):
+        """The default model is a sphere."""
+        x = np.sin(u) * np.cos(v)
+        y = np.sin(u) * np.sin(v)
+        z = np.cos(u)
+        return (x, y, z)
+
+    def integrator(self, u, v):
+        """The default model is a sphere."""
+        return self.R**2 * np.sin(v)
+
+    def calculate(self, v, u, k):
+        # x, y, z = self.surface(u, v)
+        # R = np.sqrt(x**2 + y**2 + z**2)
+        # nx, ny, nz = self.norm(u, v)
+        # dot = (x * nx + y * ny + z * nz)/R
+        R = self.R
+        dot = 1
+        return self.diff * spherical_jn(1, k * R)/(k*R) * dot * self.integrator(u, v)
+
+    def scatter(self, k):
+        return dblquad(self.calculate, self.umin, self.umax,
+                       lambda _: self.vmin, lambda _: self.vmax,
+                       args=(k,))[0]
+
+
 def Iq(x, AxleRadius, AxleLength, AxleSld, WheelRadius, WheelLength, WheelSld,
        SolventSLD):
     """Absolute scattering"""
     drho = (AxleSld - SolventSLD)
-    # result = 2 * np.pi * drho/x * quad(
-    #     lambda z: jv(1, x * np.sqrt(np.sqrt(AxleRadius**2+z**2)*x)) *
-    #     AxleRadius / np.sqrt(AxleRadius**2+z**2),
-    #     0, AxleLength)
 
-    wall = 2 * np.pi * drho / x * \
-        quad(
-            lambda z: jn(1, x * np.sqrt(AxleRadius**2+z**2)) *
-            AxleRadius**2 / np.sqrt(AxleRadius**2+z**2),
-            -AxleLength/2, AxleLength/2)[0]
+    surf = GenSurface(AxleRadius, drho)
 
-    cap1 = 2 * np.pi * drho / x * \
-        quad(
-            lambda z: jn(1, x * np.sqrt((AxleLength/2)**2+z**2)) *
-            z * AxleLength / np.sqrt((AxleLength/2)**2+z**2),
-            0, AxleRadius)[0]
-
-    V = np.pi * AxleRadius**2 * AxleLength
-
-    return (wall + 2 * cap1)**2/V
+    return surf.scatter(x)**2
